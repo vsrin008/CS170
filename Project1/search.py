@@ -1,6 +1,26 @@
 from typing import List, Tuple
 from collections import deque
+import heapq
 
+
+def manhattan(point1, point2):
+    return abs(point2[0] - point1[0]) + abs(point2[1] - point1[1])
+    
+def find_start(grid):
+    s= None
+    for i in range (len(grid)):
+        for j in range(len(grid[0])):
+            if grid[i][j] == 's':
+                s= (i,j)
+    return s
+
+def find_t(grid):
+    t= None
+    for i in range (len(grid)):
+        for j in range(len(grid[0])):
+            if grid[i][j] == 't':
+                t= (i,j)
+    return t
 
 class SearchAlgorithm:
 
@@ -10,55 +30,56 @@ class SearchAlgorithm:
         # Your code here
         pass
 
+
+
+
+
+
+
     # Implement Depth First Search
     @staticmethod
     def dfs(grid: List[List[str]]) -> Tuple[int, List[List[str]]]:
-        # Directions: Right, Down, Left, Up (adjust if needed to match expected traversal pattern)
-        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+        s = find_start(grid)
+        t = find_t(grid)
 
-        # Find the starting point 's'
-        start = None
-        for i, row in enumerate(grid):
-            for j, val in enumerate(row):
-                if val == 's':
-                    start = (i, j)
-                    break
-            if start:
-                break
+        if s is None or t is None:
+            return -1, grid  # return if there is no start or target
 
-        if not start:
-            return -1, grid  # Return if no start found
+        #initialize stack, visited, and count
+        stack = [s]
+        visited = set()
+        count = 1 
 
-        stack = [start]  # Stack for DFS
-        visited = set([start])  # Track visited cells
-        visit_order = 1  # Track the order of visitation
+        #Right, Down, Left, Up
+        neighbors = [(0, 1), (1, 0), (0, -1), (-1, 0)]
 
         while stack:
-            x, y = stack.pop()
+            cur_x, cur_y = stack.pop()
+            if (cur_x, cur_y) not in visited:
+                visited.add((cur_x, cur_y))
+                # Mark cell after visiting if it is a 0
+                if grid[cur_x][cur_y] == '0':
+                    grid[cur_x][cur_y] = str(count)
+                    count += 1
+                elif (cur_x, cur_y) == t:
+                    return 1, grid  # Found target
 
-            # If not the starting cell, mark the visitation order
-            if (x, y) != start:
-                grid[x][y] = str(visit_order)
-                visit_order += 1
+                # Explore neighbors 
+                for dx, dy in neighbors:  
+                    nx, ny = cur_x + dx, cur_y + dy
+                    if 0 <= nx < len(grid) and 0 <= ny < len(grid[0]) and (nx, ny) not in visited and grid[nx][ny] != '-1':
+                        stack.append((nx, ny))
 
-            # Check if we've found the target
-            if grid[x][y] == 't':
-                return 1, grid
-
-            # Temporarily store neighbors to add in reverse order
-            temp_neighbors = []
-            for dx, dy in directions:
-                nx, ny = x + dx, y + dy
-                if 0 <= nx < len(grid) and 0 <= ny < len(grid[0]) and (nx, ny) not in visited and grid[nx][ny] != '-1':
-                    temp_neighbors.append((nx, ny))
-                    visited.add((nx, ny))  # Mark neighbor as visited
-
-            # Add neighbors to stack in reverse order to ensure correct traversal
-            for neighbor in reversed(temp_neighbors):
-                stack.append(neighbor)
-
-        return -1, grid  # Return if target is not found
+        return -1, grid  # Target could not be found
     
+
+
+
+
+
+
+
+
     # Implement Breadth First Search
     @staticmethod
     def bfs(grid: List[List[str]]) -> Tuple[int, List[List[str]]]:
@@ -67,14 +88,7 @@ class SearchAlgorithm:
         directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
         
         # Find the starting point (s) and initialize the queue
-        start = None
-        for i in range(len(grid)):
-            for j in range(len(grid[0])):
-                if grid[i][j] == 's':
-                    start = (i, j)
-                    break
-            if start:
-                break
+        start = find_start(grid)
         
         # Early return if start is not found
         if start is None:
@@ -119,8 +133,57 @@ class SearchAlgorithm:
     # Implement Greedy Search
     @staticmethod
     def greedy_search(grid: List[List[str]]) -> Tuple[int, List[List[str]]]:
-        # Your code here
-        pass
+        s= find_start(grid)
+        t= find_t(grid)
+
+        if s is None or t is None:
+            return -1, grid  # if either start or target is not found
+
+        pq = [(manhattan(s, t), s)] #initialize priority queue
+        visited = set()
+        count = 1 #variable to number visited cells
+
+        while pq:
+            cur_distance, (cur_x, cur_y) = (heapq.heappop(pq)) #pop top priority 
+            if (cur_x, cur_y) in visited:
+                continue #if current cell is already visited, then go to next iteration
+            visited.add((cur_x, cur_y))
+            if grid[cur_x][cur_y] == '0':
+                grid[cur_x][cur_y] = str(count) #number cell after visiting
+                count+=1
+            if (cur_x, cur_y) == t:
+                return 1, grid # reached target
+            
+            
+            # Define relative positions of neighbors
+            neighbors = [(1, 0), (0, 1), (-1, 0), (0, -1)]  # Right, Down, Left, Up
+            found_closer = False
+            # Check for closer neighbors
+            for dx, dy in neighbors:
+                nx, ny = cur_x + dx, cur_y + dy
+                if 0 <= nx < len(grid) and 0 <= ny < len(grid[0]) and grid[nx][ny] != '-1':
+                    neighbor_distance = manhattan((nx, ny), t)
+                    if neighbor_distance < cur_distance:
+                        found_closer = True
+                        break  # Found a closer neighbor, no need to check further
+
+            # If no closer neighbor found, return failure
+            if not found_closer:
+                return -1, grid
+
+            # Since a closer neighbor is found, continue exploring neighbors
+            for dx, dy in neighbors:
+                nx, ny = cur_x + dx, cur_y + dy
+                if 0 <= nx < len(grid) and 0 <= ny < len(grid[0]) and grid[nx][ny] != '-1' and (nx, ny) not in visited:
+                    neighbor_distance = manhattan((nx, ny), t)
+                    heapq.heappush(pq, (neighbor_distance, (nx, ny)))
+            
+        return -1, grid
+
+
+
+       
+
 
 if __name__ == "__main__":
 
