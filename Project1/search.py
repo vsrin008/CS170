@@ -28,7 +28,37 @@ class SearchAlgorithm:
     # Implement Uniform search
     @staticmethod
     def uniform_search(grid: List[List[str]]) -> Tuple[int, List[List[str]]]:
-        pass
+        start = find_start(grid)
+        target = find_t(grid)
+
+        if not start or not target:
+            return -1, grid  # return if no start or target cell
+
+        pq = [(0, start)]  # initialize priority queue
+        visited = set(start)  
+        order = {}  # track visitation order
+        visit_count = 1 
+
+        while pq:
+            current_cost, (current_x, current_y) = heapq.heappop(pq) 
+
+            if (current_x, current_y) == target:
+                return 1, grid  # target found
+
+            # if we reach an unvisited node
+            if (current_x, current_y) not in visited:
+                visited.add((current_x, current_y)) 
+                if grid[current_x][current_y] == '0':
+                    grid[current_x][current_y] = str(visit_count)
+                    visit_count += 1
+
+                # Explore neighbors
+                for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+                    nx, ny = current_x + dx, current_y + dy
+                    if 0 <= nx < len(grid) and 0 <= ny < len(grid[0]) and grid[nx][ny] != '-1' and (nx, ny) not in visited:
+                        heapq.heappush(pq, (current_cost + 1, (nx, ny)))  # push neighbor with new cost
+
+        return -1, grid  # target not found
 
 
     # Implement Depth First Search
@@ -174,7 +204,7 @@ if __name__ == "__main__":
         ['0', '0', '0', '-1']
     ]
 
-    found, final_state = SearchAlgorithm.best_first_search(example)
+    found, final_state = SearchAlgorithm.uniform_search(example)
     if found == 1:
         print("Target found!")
     else:
